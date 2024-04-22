@@ -1,0 +1,64 @@
+version: '3.8'
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: rootuser
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - app-network
+
+  mongodb_exporter:
+    image: percona/mongodb_exporter:0.40
+    command: ["--collect-all"]
+    environment:
+      MONGODB_URI: "mongodb://rootuser:rootpass@mongodb:27017"
+    depends_on:
+      - mongodb
+    ports:
+      - "9216:9216"
+    networks:
+      - app-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - mongodb_exporter
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel"
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
