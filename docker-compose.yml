@@ -9,6 +9,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: rootpass
     volumes:
       - mongodb_data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
     ports:
       - "27017:27017"
     security_opt:
